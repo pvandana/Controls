@@ -1,0 +1,63 @@
+In Web.Config
+
+  <connectionStrings>
+    <add name="DBConnectionString" connectionString="Data Source=<DB Server Name>;Initial Catalog=<DB Name>;Persist Security Info=True;User ID=<DB User Name>;Password=<DB User Password>" />
+  </connectionStrings>
+
+
+In code behind (VB Code – Change it to C#)
+
+Imports System.Data
+
+.
+.
+.
+
+‘Code in TextChanged event
+
+Dim params As New List(Of SqlClient.SqlParameter)
+params.Add(New SqlClient.SqlParameter With {.ParameterName = “EmployeeId”, .Value = “1234567890”})
+
+<Add as many parameters the stored procedure needs>
+
+sConnection = System.Configuration.ConfigurationManager.ConnectionStrings(“DBConenctionString”).ConnectionString()
+
+Dim sqlConn As SqlClient.SqlConnection
+sqlConn = New SqlClient.SqlConnection(sConnection)
+
+Dim sqlCommand As SqlClient.SqlCommand
+sqlCommand = New SqlClient.SqlCommand With {.CommandText = “SPGetEmployeeData” _
+                                            , .CommandType = CommandType.StoredProcedure _
+                                            , .Connection = sqlConn}
+
+‘Set the parameters
+If Not IsNothing(params) AndAlso Not params.Count < 1 Then
+    For Each param In params
+       If param.Value.ToString() = "NULL" Then
+           sqlCommand.Parameters.Add(New SqlClient.SqlParameter(param.ParameterName, Convert.DBNull.Value))
+       Else
+           sqlCommand.Parameters.Add(New SqlClient.SqlParameter(param.ParameterName, param.Value))
+       End If
+    Next
+End If
+
+‘Open SQL Connection
+sqlConn.Open()
+
+‘Create SQL Data adoptor
+Dim sqlDa As New SqlClient.SqlDataAdapter(sqlCommand)
+
+‘Fill Data Set
+Dim DS As New DataSet
+sqlDa.Fill(DS)
+
+If Not (oDS Is Nothing) AndAlso oDS.Tables.Count > 0 AndAlso oDS.Tables(0).Rows.Count > 0 Then
+              ‘Read the data from data set
+              iReviewCount = oDS.Tables(0).Rows(0).Item("ReviewCount") & ""
+              If iReviewCount > 0 Then
+                            Return “No”
+              Else
+                            Return “Yes”
+              End If
+End If
+
