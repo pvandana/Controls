@@ -1,0 +1,193 @@
+Navigation Control
+
+
+Default.aspx
+
+<%@ Page Language="C#" AutoEventWireup="true" CodeFile="Default.aspx.cs" Inherits="_Default" %>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head runat="server">
+    <title></title>
+</head>
+<body>
+    <form id="form1" runat="server">
+    <div>
+     <asp:TreeView ID="xtreeCat" runat="server" ImageSet="XPFileExplorer" NodeIndent="15">
+                <HoverNodeStyle Font-Underline="True" ForeColor="#6666AA" />
+                <NodeStyle Font-Names="Tahoma" Font-Size="8pt" ForeColor="Black"
+                    HorizontalPadding="2px" NodeSpacing="0px" VerticalPadding="2px" />
+                <ParentNodeStyle Font-Bold="False" />
+                <SelectedNodeStyle Font-Underline="False"
+                    HorizontalPadding="0px" VerticalPadding="0px" BackColor="#B5B5B5" />
+            </asp:TreeView>
+    </div>
+    </form>
+</body>
+</html>
+
+
+Default.aspx.cs
+
+using System;
+using System.Collections.Generic;
+using System.Configuration;
+using System.Data;
+using System.Data.SqlClient;
+using System.Linq;
+using System.Web;
+using System.Web.UI;
+using System.Web.UI.WebControls;
+
+
+public partial class _Default : System.Web.UI.Page
+{
+
+    string strconn = ConfigurationManager.ConnectionStrings["ApplicationServices"].ToString();
+    SqlConnection sqlconn;
+    string errdesc = "0";
+
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        if (!IsPostBack)
+        {
+            // This function has the logic of Binding the Root Nodes and Child Nodes to the TREE
+            BindTree();
+        }
+    }
+
+    private void BindTree()
+    {
+        try
+        {
+            sqlconn = new SqlConnection(strconn);
+            sqlconn.Open();
+
+            // Assigning the RootNode Function to bind the roots
+            DataTable dtaddingrootnodes = RootNodes();
+            //Declaring the Head Node
+            TreeNode headnode = new TreeNode();
+            headnode.Text = "Head";
+            // Adding the Head Node to the Tree
+            xtreeCat.Nodes.Add(headnode);
+
+            // Looping through the data table to bind the Actual Root Nodes
+            for (int i = 0; i < dtaddingrootnodes.Rows.Count; i++)
+            {
+                TreeNode rootnode = new TreeNode();
+                rootnode.Text = dtaddingrootnodes.Rows[i]["CategoryName"].ToString();
+                rootnode.Value = dtaddingrootnodes.Rows[i]["CategoryID"].ToString();
+                headnode.ChildNodes.Add(rootnode);
+
+                // Creating a Datatable that will hold the data of actual Child Nodes on the base of the value of rootnode
+                DataTable dtactualChildNodes = ChildNodes(Convert.ToString(rootnode.Value));
+
+                //Running a For Loop through the datatable and binding the actual Child Nodes
+                for (int j = 0; j < dtactualChildNodes.Rows.Count; j++)
+                {
+                    TreeNode childnode = new TreeNode();
+                    childnode.Text = dtactualChildNodes.Rows[j]["ImageName"].ToString();
+                    childnode.Value = dtactualChildNodes.Rows[j]["CategoryImageID"].ToString();
+                    rootnode.ChildNodes.Add(childnode);
+                }
+
+            }
+            sqlconn.Close();
+        }
+        catch (Exception ex)
+        {
+            errdesc = ex.Message;
+        }
+    }
+
+
+    // Function to get the Data for Root Nodes
+    private DataTable RootNodes()
+    {
+        DataTable dt = new DataTable();
+        try
+        {
+            sqlconn = new SqlConnection(strconn);
+            sqlconn.Open();
+            SqlCommand cmd = new SqlCommand("select * from CategoriesMaster", sqlconn);
+            SqlDataAdapter da = new SqlDataAdapter();
+            da.SelectCommand = cmd;
+            da.Fill(dt);
+            sqlconn.Close();
+
+        }
+        catch (Exception ex)
+        {
+            errdesc = ex.Message;
+        }
+        return dt;
+    }
+
+
+    // Function to bind Actual Child Nodes on the base of the Root Node value
+    private DataTable ChildNodes(string RootNode)
+    {
+        DataTable dt = new DataTable();
+        try
+        {
+            sqlconn = new SqlConnection(strconn);
+            sqlconn.Open();
+            SqlCommand cmd = new SqlCommand("select * from CategoriesImageMaster where CategoryID = '" + RootNode + "'", sqlconn);
+            SqlDataAdapter da1 = new SqlDataAdapter();
+
+            da1.SelectCommand = cmd;
+            da1.Fill(dt);
+
+        }
+        catch (Exception ex)
+        {
+            errdesc = ex.Message;
+        }
+        return dt;
+    }
+
+}
+
+
+Web.config
+
+<connectionStrings>
+    <add name="ApplicationServices"
+         connectionString="Data Source=.;Initial Catalog=Employee;Integrated Security=True" providerName="System.Data.SqlClient" />
+  </connectionStrings>
+  
+  
+  SQL DB
+  
+  CREATE TABLE [dbo].[CategoriesMaster](
+        [CategoryID] [int] NOT NULL,
+        [CategoryName] [varchar](50) NOT NULL,
+)
+CREATE TABLE [dbo].[CategoriesImageMaster](
+        [CategoryImageID] [int] NOT NULL,
+        [CategoryID] [int] NOT NULL,
+        [ImageName] [varchar](50) NOT NULL,
+)
+
+
+USE Employee
+GO
+INSERT [dbo].[CategoriesImageMaster] ([CategoryImageID], [CategoryID], [ImageName]) VALUES (1, 1, N'ASP')
+GO
+INSERT [dbo].[CategoriesImageMaster] ([CategoryImageID], [CategoryID], [ImageName]) VALUES (2, 1, N'C#')
+GO
+INSERT [dbo].[CategoriesImageMaster] ([CategoryImageID], [CategoryID], [ImageName]) VALUES (3, 1, N'MVC')
+GO
+INSERT [dbo].[CategoriesImageMaster] ([CategoryImageID], [CategoryID], [ImageName]) VALUES (4, 2, N'Springs')
+GO
+INSERT [dbo].[CategoriesImageMaster] ([CategoryImageID], [CategoryID], [ImageName]) VALUES (5, 2, N'Hybernet')
+GO
+INSERT [dbo].[CategoriesImageMaster] ([CategoryImageID], [CategoryID], [ImageName]) VALUES (6, 2, N'JDBC')
+GO
+INSERT [dbo].[CategoriesMaster] ([CategoryID], [CategoryName]) VALUES (1, N'DotNet')
+GO
+INSERT [dbo].[CategoriesMaster] ([CategoryID], [CategoryName]) VALUES (2, N'Java')
+GO
+INSERT [dbo].[CategoriesMaster] ([CategoryID], [CategoryName]) VALUES (3, N'PHP')
+GO
